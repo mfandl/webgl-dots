@@ -1,7 +1,9 @@
 'use strict';
 
-let mat4 = require('gl-matrix-mat4');
+let mat4 = require('gl-matrix').mat4;
 let resl = require('resl');
+
+let ms = require('./matrixStack');
 
 let canvas;
 let gl;
@@ -21,9 +23,9 @@ let elapsedTime = 0;
 
 addEventListener('load', onLoad);
 
-addEventListener('resize', resize);
+addEventListener('resize', updateSize);
 
-function resize () {
+function updateSize () {
   w = gl.viewportWidth = canvas.width = window.innerWidth;
   h = gl.viewportHeight = canvas.height = window.innerHeight;
 }
@@ -56,7 +58,7 @@ function init (assets) {
     console.error('WebGL init failed');
   }
 
-  resize();
+  updateSize();
 
   pMatrix = mat4.create();
   mvMatrix = mat4.create();
@@ -139,15 +141,25 @@ function initBuffers () {
 }
 
 function drawScene ()  {
-
-  
   gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   mat4.perspective(pMatrix, Math.PI / 4, gl.viewportWidth / gl.viewportHeight, 0.1, 100);
-  mat4.identity(mvMatrix);
+  
+  mat4.identity(ms.current());
+  mat4.translate(ms.current(), ms.current(), [0.0, 0.0, -100.0]);
+  
+  for (let i = 0; i < 1000000; ++i) {
+    const side = 200;
+    drawTriangle([-side / 2 + Math.random() * side, -side / 2 + Math.random() * side, -side / 2 + Math.random() * side-side / 2 + Math.random() * side]);
+  }
+  
+}
 
-  mat4.translate(mvMatrix, mvMatrix, [0.0, 0.0, -7.0]);
-  mat4.rotate(mvMatrix, mvMatrix, Math.random() * 0.02, [1, 1, 1]);
+function drawTriangle (position) {
+  ms.push();
+  mat4.translate(ms.current(), ms.current(), position);
+  mat4.rotate(ms.current(), ms.current(), Math.random() * 0.02, [1, 1, 1]);
+  
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
   gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
@@ -158,9 +170,11 @@ function drawScene ()  {
   gl.uniform1f(shaderProgram.elapsedTimeUniform, elapsedTime);
   setMatrixUniforms();
   gl.drawArrays(gl.TRIANGLES, 0, vertexBuffer.numItems);
+  ms.pop();
+  
 }
 
 function setMatrixUniforms () {
   gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-  gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+  gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, ms.current());
 }
