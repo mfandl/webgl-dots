@@ -1,0 +1,22 @@
+{
+  "name": "flying-webgl-dots",
+  "version": "0.0.1",
+  "description": "Flying dots in raw WebGL",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "WebGL"
+  ],
+  "author": "@mfandl",
+  "license": "MIT",
+  "dependencies": {
+    "gl-matrix": "^2.3.2",
+    "gl-matrix-mat4": "^2.2.1-npm",
+    "resl": "^1.0.3"
+  },
+  "devDependencies": {
+    "jshint": "^2.9.4"
+  }
+}
