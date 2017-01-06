@@ -7,7 +7,6 @@ let ms = require('./matrixStack');
 
 let canvas;
 let gl;
-let w, h;
 
 let shaderProgram;
 
@@ -22,14 +21,22 @@ let elapsedTime = 0;
 
 let positions = [];
 
+let viewport = {
+  width: 800,
+  height: 600,
+  get aspectRatio () {
+    return this.width / this.height;
+  }
+
+};
 
 addEventListener('load', onLoad);
 
-//addEventListener('resize', updateSize);
+addEventListener('resize', updateSize);
 
 function updateSize () {
-  w = gl.viewportWidth = canvas.width = window.innerWidth;
-  h = gl.viewportHeight = canvas.height = window.innerHeight;
+  viewport.width = canvas.width = window.innerWidth;
+  viewport.height = canvas.height = window.innerHeight;
 }
 
 function onLoad () {
@@ -159,9 +166,9 @@ function initBuffers () {
 }
 
 function drawScene ()  {
-  gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+  gl.viewport(0, 0, viewport.width, viewport.height);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  mat4.perspective(pMatrix, Math.PI / 4, gl.viewportWidth / gl.viewportHeight, 0.1, 100);
+  mat4.perspective(pMatrix, Math.PI / 4, viewport.aspectRatio, 0.1, 100);
   
   mat4.identity(ms.current());
   mat4.translate(ms.current(), ms.current(), [0.0, 0.0, -20.0]);
