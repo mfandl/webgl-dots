@@ -13,6 +13,7 @@ let shaderProgram;
 let vertexBuffer;
 let colorBuffer;
 let indexBuffer;
+let textureCoordBuffer;
 
 let pMatrix;
 let mvMatrix;
@@ -30,6 +31,8 @@ let viewport = {
   }
 
 };
+
+let sampleTexture;
 
 addEventListener('load', onLoad);
 
@@ -51,6 +54,11 @@ function onLoad () {
       vertexShader: {
         type: 'text',
         src: 'shaders/vs.glsl'
+      },
+
+      sampleTexture: {
+        type: 'image',
+        src: 'textures/sample.jpg'
       }
     },
 
@@ -68,8 +76,6 @@ function init (assets) {
         randomSign() * Math.random() * halfSide
       ]);
   }
-
-  console.log(positions);
 
   function randomSign () {
     return Math.random() < 0.5 ? -1 : 1;
@@ -96,10 +102,24 @@ function init (assets) {
 
   initBuffers();
 
+  sampleTexture = prepareTexture(assets.sampleTexture);
+
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.enable(gl.DEPTH_TEST);
 
   setInterval(drawScene, 1000 / 60);
+}
+
+function prepareTexture (image) {
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+
+  return texture;
 }
 
 function compileShader (source, type) {
@@ -133,9 +153,13 @@ function setShaders (vertex, fragment) {
   shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, 'vertexColor');
   gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
 
+  shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, 'textureCoord');
+  gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+
   shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, 'pMatrix');
   shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, 'mvMatrix');
   shaderProgram.elapsedTimeUniform = gl.getUniformLocation(shaderProgram, 'elapsedTime');
+  shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "textureSampler");
 }
 
 function initBuffers () {
@@ -179,7 +203,19 @@ function initBuffers () {
   colorBuffer.itemSize = 4;
   colorBuffer.numItems = 4;
 
+  textureCoordBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
 
+  let textureCoordinates = [
+    0.0, 1.0,
+    0.0, 0.0,
+    1.0, 0.0,
+    1.0, 1.0
+  ];
+
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
+  textureCoordBuffer.itemSize = 2;
+  textureCoordBuffer.numItems = 4;
 }
 
 function drawScene ()  {
@@ -188,12 +224,12 @@ function drawScene ()  {
   mat4.perspective(pMatrix, Math.PI / 4, viewport.aspectRatio, 0.1, 100);
   
   mat4.identity(ms.current());
-  mat4.translate(ms.current(), ms.current(), [0.0, 0.0, -20.0]);
+  mat4.translate(ms.current(), ms.current(), [0.0, 0.0, -50.0]);
 
-  positions.forEach((position) => drawTriangle(position));
+  positions.forEach(position => drawRect(position));
 }
 
-function drawTriangle (position) {
+function drawRect (position) {
   ms.push();
   mat4.rotate(ms.current(), ms.current(), elapsedTime, [1, 1, 1]);
   mat4.translate(ms.current(), ms.current(), position);
@@ -205,17 +241,22 @@ function drawTriangle (position) {
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
   gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, colorBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-  elapsedTime = new Date().getTime() / 1000 - startTime;
-  gl.uniform1f(shaderProgram.elapsedTimeUniform, elapsedTime);
+  gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+  gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, textureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+  
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, sampleTexture);
+  gl.uniform1i(shaderProgram.samplerUniform, 0);
 
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  elapsedTime = new Date().getTime() / 1000 - startTime;
   setMatrixUniforms();
   gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
   ms.pop();
-  
 }
 
 function setMatrixUniforms () {
+  gl.uniform1f(shaderProgram.elapsedTimeUniform, elapsedTime);
   gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
   gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, ms.current());
 }
