@@ -20,10 +20,12 @@ let mvMatrix;
 let startTime;
 let elapsedTime = 0;
 
+let positions = [];
+
 
 addEventListener('load', onLoad);
 
-addEventListener('resize', updateSize);
+//addEventListener('resize', updateSize);
 
 function updateSize () {
   w = gl.viewportWidth = canvas.width = window.innerWidth;
@@ -49,6 +51,22 @@ function onLoad () {
 }
 
 function init (assets) {
+  const halfSide = 20;
+  for (var i = 0; i < 100; ++i) {
+    positions.push(
+      [
+        randomSign() * Math.random() * halfSide,
+        randomSign() * Math.random() * halfSide,
+        randomSign() * Math.random() * halfSide
+      ]);
+  }
+
+  console.log(positions);
+
+  function randomSign () {
+    return Math.random() < 0.5 ? -1 : 1;
+  }
+
   startTime = new Date().getTime() / 1000;
 
   canvas = document.getElementById('cnvs');
@@ -146,13 +164,9 @@ function drawScene ()  {
   mat4.perspective(pMatrix, Math.PI / 4, gl.viewportWidth / gl.viewportHeight, 0.1, 100);
   
   mat4.identity(ms.current());
-  mat4.translate(ms.current(), ms.current(), [0.0, 0.0, -100.0]);
-  
-  for (let i = 0; i < 1000000; ++i) {
-    const side = 200;
-    drawTriangle([-side / 2 + Math.random() * side, -side / 2 + Math.random() * side, -side / 2 + Math.random() * side-side / 2 + Math.random() * side]);
-  }
-  
+  mat4.translate(ms.current(), ms.current(), [0.0, 0.0, -20.0]);
+
+  positions.forEach((position) => drawTriangle(position));
 }
 
 function drawTriangle (position) {
