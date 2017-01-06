@@ -12,6 +12,7 @@ let shaderProgram;
 
 let vertexBuffer;
 let colorBuffer;
+let indexBuffer;
 
 let pMatrix;
 let mvMatrix;
@@ -58,8 +59,8 @@ function onLoad () {
 }
 
 function init (assets) {
-  const halfSide = 20;
-  for (var i = 0; i < 100; ++i) {
+  const halfSide = 10;
+  for (var i = 0; i < 1000; ++i) {
     positions.push(
       [
         randomSign() * Math.random() * halfSide,
@@ -142,14 +143,27 @@ function initBuffers () {
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
   
   let vertices = [
-    0.0,  1.0,  0.0,
+    -1.0,  1.0,  0.0,
     -1.0, -1.0,  0.0,
-    1.0, -1.0,  0.0
+    1.0, -1.0,  0.0,
+    1.0, 1.0, 0.0
   ];
 
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
   vertexBuffer.itemSize = 3;
-  vertexBuffer.numItems = 3;
+  vertexBuffer.numItems = 4;
+
+  indexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+  let indices = [
+    0, 1, 2,
+    0, 2, 3
+  ];
+
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+  indexBuffer.itemSize = 1;
+  indexBuffer.numItems = 6;
 
   colorBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
@@ -157,12 +171,15 @@ function initBuffers () {
   let colors = [
     1.0, 0.0, 0.0, 1.0,
     1.0, 1.0, 0.0, 1.0,
-    1.0, 0.0, 1.0, 1.0
+    1.0, 0.0, 1.0, 1.0,
+    0.0, 0.0, 1.0, 1.0
   ];
 
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
   colorBuffer.itemSize = 4;
-  colorBuffer.numItems = 3;
+  colorBuffer.numItems = 4;
+
+
 }
 
 function drawScene ()  {
@@ -178,8 +195,9 @@ function drawScene ()  {
 
 function drawTriangle (position) {
   ms.push();
+  mat4.rotate(ms.current(), ms.current(), elapsedTime, [1, 1, 1]);
   mat4.translate(ms.current(), ms.current(), position);
-  mat4.rotate(ms.current(), ms.current(), Math.random() * 0.02, [1, 1, 1]);
+  
   
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
   gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -189,8 +207,10 @@ function drawTriangle (position) {
 
   elapsedTime = new Date().getTime() / 1000 - startTime;
   gl.uniform1f(shaderProgram.elapsedTimeUniform, elapsedTime);
+
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   setMatrixUniforms();
-  gl.drawArrays(gl.TRIANGLES, 0, vertexBuffer.numItems);
+  gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
   ms.pop();
   
 }
